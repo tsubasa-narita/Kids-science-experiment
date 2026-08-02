@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { FlowerPhenomenon } from "./FlowerPhenomenon";
 
-type Screen = "home" | "preview" | "guess" | "check" | "steps" | "observe" | "why" | "coming";
+type Screen = "home" | "show" | "handoff" | "check" | "steps" | "observe" | "why" | "coming";
 
 const flowerSteps = [
   ["こども", "はなを おりたたもう", "かみを はなの かたちに おって、はなびらを まんなかへ たたもう。", "✿"],
@@ -34,7 +35,6 @@ function SpeakButton({ text }: { text: string }) {
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("home");
   const [selected, setSelected] = useState("ひらく紙の花");
-  const [guess, setGuess] = useState("");
   const [checked, setChecked] = useState<boolean[]>([false, false, false, false]);
   const [step, setStep] = useState(0);
   const [observation, setObservation] = useState("");
@@ -47,9 +47,9 @@ export default function Home() {
 
   const chooseExperiment = (name: string) => {
     setSelected(name);
-    setScreen(name === "ひらく紙の花" ? "preview" : "coming");
+    setScreen(name === "ひらく紙の花" ? "show" : "coming");
   };
-  const reset = () => { setGuess(""); setObservation(""); setChecked([false, false, false, false]); setStep(0); setScreen("home"); };
+  const reset = () => { setObservation(""); setChecked([false, false, false, false]); setStep(0); setScreen("home"); };
 
   return (
     <main>
@@ -61,18 +61,18 @@ export default function Home() {
       <div className={`screen screen--${screen}`} key={screen}>
       {screen === "home" && <section className="home">
         <p className="eyebrow">きょうは どの ふしぎ？</p>
-        <h1 ref={headingRef} tabIndex={-1}>みて、よそうして、<br /><em>やってみよう！</em></h1>
-        <p className="lead">うごくカードを タップしてね。<br />じっけんは おとなと いっしょに。</p>
+        <h1 ref={headingRef} tabIndex={-1}>どの ふしぎを<br /><em>みる？</em></h1>
+        <p className="lead">カードを おすと、10びょうで<br />ぜんぶ みられるよ。</p>
         <div className="experiment-grid">
-          <button className="experiment-card flower-card" onClick={() => chooseExperiment("ひらく紙の花")}>
+          <button className="experiment-card flower-card" onClick={() => chooseExperiment("ひらく紙の花")} aria-label="ひらく紙の花を 10びょうで みる">
             <div className="card-status">いま できる</div><div className="scene flower-scene"><i /><i /><i /><i /><b>⌁</b></div>
-            <span className="tag">みず × かみ</span><strong>ひらく 紙の花</strong><small>おみずで はなびらが…？</small><span className="card-go">みてみる →</span>
+            <span className="tag">みず × かみ</span><strong>ひらく 紙の花</strong><small>おみずで はなびらが…？</small><span className="card-go">10びょうで みる →</span>
           </button>
-          <button className="experiment-card rainbow-card" onClick={() => chooseExperiment("ペーパータオルの虹")}>
+          <button className="experiment-card rainbow-card" onClick={() => chooseExperiment("ペーパータオルの虹")} aria-label="ペーパータオルの虹の よこくを みる。じゅんび中">
             <div className="card-status quiet">じゅんび中</div><div className="scene rainbow-scene"><i /><i /><i /><b>⌇</b></div>
             <span className="tag">いろ × みず</span><strong>ペーパータオルの虹</strong><small>いろが あるいていく？</small><span className="card-go">よこくをみる →</span>
           </button>
-          <button className="experiment-card shadow-card" onClick={() => chooseExperiment("LEDで影くらべ")}>
+          <button className="experiment-card shadow-card" onClick={() => chooseExperiment("LEDで影くらべ")} aria-label="LEDで影くらべの よこくを みる。じゅんび中">
             <div className="card-status quiet">じゅんび中</div><div className="scene shadow-scene"><b>●</b><i>▲</i><span>▲</span></div>
             <span className="tag">ひかり × かげ</span><strong>LEDで 影くらべ</strong><small>かげは どこまで のびる？</small><span className="card-go">よこくをみる →</span>
           </button>
@@ -80,20 +80,15 @@ export default function Home() {
         <aside className="device-note"><span>⌁</span><p><b>だいじな おやくそく</b><br />おみずを つかうときは、ききや タブレットを おみずから はなそう。</p></aside>
       </section>}
 
-      {screen === "preview" && <section className="flow-screen preview-screen">
-        <p className="eyebrow">ひらく 紙の花</p><h2 ref={headingRef} tabIndex={-1}>おみずに うかべたら<br /><em>どうなるかな？</em></h2>
-        <div className="big-scene"><div className="paper-flower"><i /><i /><i /><i /><b>●</b></div><span className="water">⌁⌁⌁⌁⌁</span><p>…あれ？ まだ ひらかないよ</p></div>
-        <p className="prompt">このつぎに おこることを、よそうしてみよう。</p><button className="primary" onClick={() => setScreen("guess")}>よそうする <span>→</span></button>
-        <button className="back" onClick={reset}>← カードへ もどる</button>
-      </section>}
+      {screen === "show" && <FlowerPhenomenon onTry={() => setScreen("handoff")} onBack={reset} />}
 
-      {screen === "guess" && <section className="flow-screen">
-        <p className="eyebrow">よそう タイム</p><h2 ref={headingRef} tabIndex={-1}>花びらは<br /><em>どうなると おもう？</em></h2>
-        <p className="lead">えを ひとつ えらんでね</p>
-        <div className="guess-options">
-          {[["open", "ひらく", "✿"], ["stay", "かわらない", "⊙"], ["other", "ちがうことが おきるかも", "?" ]].map(([id, label, icon]) => <button key={id} onClick={() => setGuess(id)} className={`guess ${guess === id ? "selected" : ""}`} aria-pressed={guess === id}><b>{icon}</b><span>{label}</span>{guess === id && <i>そう おもったんだね</i>}</button>)}
-        </div>
-        <button className="primary" disabled={!guess} onClick={() => setScreen("check")}>つぎへ <span>→</span></button>
+      {screen === "handoff" && <section className="flow-screen handoff-screen">
+        <p className="eyebrow">おうちのひとへ</p>
+        <h2 ref={headingRef} tabIndex={-1}>おうちのひとに<br /><em>わたしてね</em></h2>
+        <div className="handoff-mark" aria-hidden="true"><span>こども</span><b>→</b><span>おとな</span></div>
+        <p className="lead">ここからは おとなのひとと<br />いっしょに。</p>
+        <button className="primary" onClick={() => setScreen("check")}>おとなが かくにんする <span>→</span></button>
+        <button className="back" onClick={() => setScreen("show")}>← ショーへ もどる</button>
       </section>}
 
       {screen === "check" && <section className="flow-screen guardian-screen">

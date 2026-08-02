@@ -17,6 +17,9 @@ test("server-renders the fushigi no tane home", async () => {
   const html = await response.text();
   assert.match(html, /<title>ふしぎのたね/);
   assert.match(html, /ふしぎのたね/);
+  assert.match(html, /どの ふしぎを/);
+  assert.match(html, /10びょうで/);
   assert.match(html, /ひらく 紙の花/);
+  assert.doesNotMatch(html, /よそうする|よそう タイム/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|Starter Project|react-loading-skeleton/i);
 });
