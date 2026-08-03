@@ -1,4 +1,7 @@
 "use client";
+/* The five decoded story frames intentionally use relative <img> URLs so the
+   same build works at both the site root and the GitHub Pages base path. */
+/* eslint-disable @next/next/no-img-element */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -7,7 +10,18 @@ type FlowerPhenomenonProps = {
   onBack: () => void;
 };
 
+type AssetState = "loading" | "ready" | "error";
+
+const frameSources = [
+  "flower-story/frame-01-closed.webp",
+  "flower-story/frame-02-contact.webp",
+  "flower-story/frame-03-absorbing.webp",
+  "flower-story/frame-04-half-open.webp",
+  "flower-story/frame-05-open.webp",
+] as const;
+
 const conclusion = "みずを すって、ひらいた！";
+const visualDescription = "おりたたんだ紙の花を水に浮かべると、水を吸って花びらがゆっくり開くようすを、5枚の絵で順番に示しています。";
 const completionAnnouncement = "ショーが おわりました。やってみたい、もういちど みる、ほかの ふしぎを えらべます";
 
 export function FlowerPhenomenon({ onTry, onBack }: FlowerPhenomenonProps) {
@@ -18,6 +32,8 @@ export function FlowerPhenomenon({ onTry, onBack }: FlowerPhenomenonProps) {
   const animationsRef = useRef<Animation[]>([]);
   const runRef = useRef(0);
   const completeRef = useRef(false);
+  const [assetState, setAssetState] = useState<AssetState>("loading");
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [complete, setComplete] = useState(false);
   const [paused, setPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -51,98 +67,58 @@ export function FlowerPhenomenon({ onTry, onBack }: FlowerPhenomenonProps) {
       animations.push(element.animate(keyframes, { fill: "both", ...options }));
     };
 
-    animate(".phenomenon-scene", [
-      { opacity: 0.72, transform: "translate3d(0,8px,0) scale(.992)" },
-      { opacity: 1, transform: "translate3d(0,0,0) scale(1)" },
-    ], { duration: 550, easing: "cubic-bezier(.22,1,.36,1)" });
+    const frameTiming = [
+      { delay: 0, duration: 1500, fadeIn: false, keep: false },
+      { delay: 1250, duration: 2200, fadeIn: true, keep: false },
+      { delay: 2850, duration: 2750, fadeIn: true, keep: false },
+      { delay: 4950, duration: 3000, fadeIn: true, keep: false },
+      { delay: 7250, duration: 2750, fadeIn: true, keep: true },
+    ];
 
-    animate(".phenomenon-flower", [
-      { transform: "translate3d(0,-82px,0)" },
-      { transform: "translate3d(0,0,0)", offset: 0.88 },
-      { transform: "translate3d(0,2px,0)" },
-    ], { delay: 550, duration: 800, easing: "cubic-bezier(.22,1,.36,1)" });
-
-    animate(".phenomenon-ripple-one", [
-      { opacity: 0, transform: "translate3d(-50%,0,0) scaleX(.2)" },
-      { opacity: 0.8, offset: 0.35, transform: "translate3d(-50%,0,0) scaleX(.72)" },
-      { opacity: 0, transform: "translate3d(-50%,0,0) scaleX(1.18)" },
-    ], { delay: 1240, duration: 820, easing: "cubic-bezier(.22,1,.36,1)" });
-    animate(".phenomenon-ripple-two", [
-      { opacity: 0, transform: "translate3d(-50%,0,0) scaleX(.25)" },
-      { opacity: 0.55, offset: 0.35, transform: "translate3d(-50%,0,0) scaleX(.8)" },
-      { opacity: 0, transform: "translate3d(-50%,0,0) scaleX(1.25)" },
-    ], { delay: 1370, duration: 900, easing: "cubic-bezier(.22,1,.36,1)" });
-    animate(".phenomenon-word-splash", [
-      { opacity: 0, transform: "translate3d(0,7px,0) scale(.96)" },
-      { opacity: 1, offset: 0.25, transform: "translate3d(0,0,0) scale(1)" },
-      { opacity: 0, transform: "translate3d(0,-4px,0) scale(1)" },
-    ], { delay: 1180, duration: 900, easing: "cubic-bezier(.22,1,.36,1)" });
-
-    root.querySelectorAll<HTMLElement>(".phenomenon-absorb-line").forEach((line, index) => {
-      animations.push(line.animate([
-        { opacity: 0, transform: "scaleY(.05)" },
-        { opacity: 0.82, offset: 0.28, transform: "scaleY(.34)" },
-        { opacity: 0.9, transform: "scaleY(1)" },
-      ], {
-        delay: 1350 + index * 120,
-        duration: 1880,
-        easing: "cubic-bezier(.22,1,.36,1)",
+    root.querySelectorAll<HTMLElement>(".phenomenon-frame").forEach((frame, index) => {
+      const timing = frameTiming[index];
+      const startOpacity = timing.fadeIn ? 0 : 1;
+      const keyframes: Keyframe[] = timing.keep
+        ? [
+            { opacity: startOpacity, transform: "scale(1.008)" },
+            { opacity: 1, offset: 0.13, transform: "scale(1.004)" },
+            { opacity: 1, transform: "scale(1)" },
+          ]
+        : [
+            { opacity: startOpacity, transform: "scale(1.008)" },
+            { opacity: 1, offset: timing.fadeIn ? 0.13 : 0, transform: "scale(1.004)" },
+            { opacity: 1, offset: 0.84, transform: "scale(1.001)" },
+            { opacity: 0, transform: "scale(1)" },
+          ];
+      animations.push(frame.animate(keyframes, {
+        delay: timing.delay,
+        duration: timing.duration,
+        easing: "linear",
         fill: "both",
       }));
     });
-    root.querySelectorAll<HTMLElement>(".phenomenon-petal-wet").forEach((wet, index) => {
-      animations.push(wet.animate([
-        { opacity: 0, transform: "scaleY(.05)" },
-        { opacity: 0.5, transform: "scaleY(1)" },
-      ], {
-        delay: 1760 + index * 120,
-        duration: 1480,
-        easing: "ease-out",
-        fill: "both",
-      }));
-    });
-    animate(".phenomenon-word-absorb", [
-      { opacity: 0, transform: "translate3d(0,6px,0)" },
-      { opacity: 1, offset: 0.28, transform: "translate3d(0,0,0)" },
-      { opacity: 1, offset: 0.78, transform: "translate3d(0,0,0)" },
-      { opacity: 0, transform: "translate3d(0,-3px,0)" },
-    ], { delay: 1480, duration: 2200, easing: "cubic-bezier(.22,1,.36,1)" });
 
-    root.querySelectorAll<HTMLElement>(".phenomenon-petal").forEach((petal, index) => {
-      animations.push(petal.animate([
-        { transform: "perspective(260px) rotateX(70deg) scaleY(.65)" },
-        { transform: "perspective(260px) rotateX(20deg) scaleY(.9)", offset: 0.68 },
-        { transform: "perspective(260px) rotateX(0deg) scaleY(1)" },
-      ], {
-        delay: 4350 + index * 120,
-        duration: 3500 - index * 120,
-        easing: "cubic-bezier(.22,1,.36,1)",
-        fill: "both",
-      }));
+    const captions = [
+      { selector: ".phenomenon-caption-contact", delay: 1280, duration: 1560 },
+      { selector: ".phenomenon-caption-absorb", delay: 2860, duration: 2180 },
+      { selector: ".phenomenon-caption-loosen", delay: 5000, duration: 2260 },
+      { selector: ".phenomenon-caption-open", delay: 7280, duration: 1700 },
+    ];
+    captions.forEach(({ selector, delay, duration }) => {
+      animate(selector, [
+        { opacity: 0, transform: "translate3d(-50%,7px,0)" },
+        { opacity: 1, offset: 0.16, transform: "translate3d(-50%,0,0)" },
+        { opacity: 1, offset: 0.82, transform: "translate3d(-50%,0,0)" },
+        { opacity: 0, transform: "translate3d(-50%,-4px,0)" },
+      ], { delay, duration, easing: "cubic-bezier(.22,1,.36,1)" });
     });
-    animate(".phenomenon-word-open", [
-      { opacity: 0, transform: "translate3d(0,7px,0)" },
-      { opacity: 1, offset: 0.25, transform: "translate3d(0,0,0)" },
-      { opacity: 1, offset: 0.82, transform: "translate3d(0,0,0)" },
-      { opacity: 0, transform: "translate3d(0,-3px,0)" },
-    ], { delay: 4520, duration: 2800, easing: "cubic-bezier(.22,1,.36,1)" });
-    animate(".phenomenon-full-ring", [
-      { opacity: 0, transform: "translate3d(-50%,-50%,0) scale(.72)" },
-      { opacity: 0.68, offset: 0.35, transform: "translate3d(-50%,-50%,0) scale(1)" },
-      { opacity: 0, transform: "translate3d(-50%,-50%,0) scale(1.12)" },
-    ], { delay: 7850, duration: 1250, easing: "cubic-bezier(.22,1,.36,1)" });
-    animate(".phenomenon-word-full", [
-      { opacity: 0, transform: "translate3d(0,7px,0) scale(.96)" },
-      { opacity: 1, offset: 0.3, transform: "translate3d(0,0,0) scale(1)" },
-      { opacity: 1, transform: "translate3d(0,0,0) scale(1)" },
-    ], { delay: 7850, duration: 1250, easing: "cubic-bezier(.22,1,.36,1)" });
     animate(".phenomenon-conclusion", [
       { opacity: 0, transform: "translate3d(0,6px,0)" },
       { opacity: 1, transform: "translate3d(0,0,0)" },
     ], { delay: 9100, duration: 600, easing: "cubic-bezier(.22,1,.36,1)" });
 
     [0, 1, 2].forEach((index) => {
-      const delays = [550, 1350, 4350];
+      const delays = [0, 2850, 4950];
       animate(`.phenomenon-phase:nth-child(${index + 1})`, [
         { opacity: 0.48, transform: "translate3d(0,0,0) scale(1)" },
         { opacity: 1, transform: "translate3d(0,-2px,0) scale(1.035)" },
@@ -170,6 +146,30 @@ export function FlowerPhenomenon({ onTry, onBack }: FlowerPhenomenonProps) {
   }, [cancelAnimations]);
 
   useEffect(() => {
+    let active = true;
+    cancelAnimations();
+
+    const preload = (source: string) => new Promise<void>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => {
+        image.decode().then(resolve).catch(reject);
+      };
+      image.onerror = () => reject(new Error(`Could not load ${source}`));
+      image.src = source;
+    });
+
+    Promise.all(frameSources.map(preload)).then(() => {
+      if (active) setAssetState("ready");
+    }).catch(() => {
+      if (active) setAssetState("error");
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [cancelAnimations, loadAttempt]);
+
+  useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     const onPreferenceChange = () => {
@@ -179,7 +179,6 @@ export function FlowerPhenomenon({ onTry, onBack }: FlowerPhenomenonProps) {
       setComplete(media.matches);
       setPaused(false);
       setAnnouncement(media.matches ? completionAnnouncement : "");
-      if (!media.matches) requestAnimationFrame(() => startShow());
     };
     const onVisibilityChange = () => {
       if (document.hidden && !completeRef.current) {
@@ -188,23 +187,32 @@ export function FlowerPhenomenon({ onTry, onBack }: FlowerPhenomenonProps) {
       }
     };
 
+    completeRef.current = media.matches;
+    setReducedMotion(media.matches);
     media.addEventListener("change", onPreferenceChange);
     document.addEventListener("visibilitychange", onVisibilityChange);
-    if (media.matches) {
-      setReducedMotion(true);
-      completeRef.current = true;
-      setComplete(true);
-      setAnnouncement(completionAnnouncement);
-    } else {
-      requestAnimationFrame(() => startShow());
-    }
-
     return () => {
       media.removeEventListener("change", onPreferenceChange);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       cancelAnimations();
     };
-  }, [cancelAnimations, startShow]);
+  }, [cancelAnimations]);
+
+  useEffect(() => {
+    if (assetState !== "ready") return;
+    if (reducedMotion) {
+      completeRef.current = true;
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      startShow();
+      if (document.hidden) {
+        animationsRef.current.forEach((animation) => animation.pause());
+        setPaused(true);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [assetState, reducedMotion, startShow]);
 
   const togglePause = () => {
     if (paused) {
@@ -221,65 +229,81 @@ export function FlowerPhenomenon({ onTry, onBack }: FlowerPhenomenonProps) {
     onBack();
   };
 
-  if (reducedMotion) {
-    return (
-      <section className="phenomenon-shell phenomenon-reduced" ref={rootRef}>
-        <p className="eyebrow">10びょう ふしぎショー</p>
-        <h2 ref={headingRef} tabIndex={-1}>ひらく 紙の花</h2>
-        <p className="phenomenon-description">おりたたんだ かみの はなを おみずに うかべると、みずを すって はなびらが ゆっくり ひらくよ。</p>
-        <div className="phenomenon-storyboard" aria-label="紙の花が開く3つの段階" role="list">
-          <div role="listitem"><b>① おく</b><span className="phenomenon-static-flower closed"><i /><i /><i /><i /><em>●</em><span className="phenomenon-static-water" /></span><small>とじた はな</small></div>
-          <span className="phenomenon-story-arrow" aria-hidden="true"><b className="arrow-wide">→</b><b className="arrow-small">↓</b><small>つぎへ</small></span>
-          <div role="listitem"><b>② みずを すう</b><span className="phenomenon-static-flower half"><i /><i /><i /><i /><em>●</em><span className="phenomenon-static-absorb" /><span className="phenomenon-static-water" /></span><small>みずが すすむ</small></div>
-          <span className="phenomenon-story-arrow" aria-hidden="true"><b className="arrow-wide">→</b><b className="arrow-small">↓</b><small>つぎへ</small></span>
-          <div role="listitem"><b>③ ひらく</b><span className="phenomenon-static-flower open"><i /><i /><i /><i /><em>●</em><span className="phenomenon-static-water" /></span><small>ぜんぶ ひらく</small></div>
-        </div>
-        <p className="phenomenon-reduced-conclusion">{conclusion}</p>
-        <div className="phenomenon-finish-actions">
-          <button className="primary" onClick={onTry} aria-label="やってみたい。おうちのひとへ わたす">やってみたい！ <span>→</span></button>
-          <button className="back" onClick={onBack} aria-label="ほかの ふしぎへ もどる">← ほかの ふしぎ</button>
-        </div>
-      </section>
-    );
+  const sharedHeading = <>
+    <span className="phenomenon-visual-badge">えで みてみよう</span>
+    <p className="eyebrow">10びょう ふしぎショー</p>
+    <h2 ref={headingRef} tabIndex={-1}>ひらく 紙の花</h2>
+    <p className="phenomenon-description">このショーは、へんかを 10びょうに まとめた えだよ。ほんものは もっと ゆっくりだったり、すこしだけ ひらくことも あるよ。</p>
+    <p className="sr-only">{visualDescription}</p>
+  </>;
+
+  if (assetState === "loading") {
+    return <section className="phenomenon-shell" ref={rootRef}>
+      {sharedHeading}
+      <div className="phenomenon-loading" role="status"><span aria-hidden="true" />ショーを じゅんびしているよ</div>
+      <button className="back" onClick={onBack} aria-label="ほかの ふしぎへ もどる">← ほかの ふしぎ</button>
+    </section>;
   }
 
-  return (
-    <section className="phenomenon-shell" ref={rootRef}>
-      <p className="eyebrow">10びょう ふしぎショー</p>
-      <h2 ref={headingRef} tabIndex={-1}>ひらく 紙の花</h2>
-      <p className="phenomenon-description">おりたたんだ かみの はなを おみずに うかべると、みずを すって はなびらが ゆっくり ひらくよ。</p>
-      <div className="phenomenon-scene" aria-hidden="true">
-        <div className="phenomenon-sky" />
-        <div className="phenomenon-full-ring" />
-        <div className="phenomenon-flower">
-          {[0, 1, 2, 3].map((petal) => (
-            <span className={`phenomenon-petal-arm arm-${petal}`} key={petal}>
-              <i className="phenomenon-petal"><span className="phenomenon-petal-wet" /><span className="phenomenon-absorb-line" /></i>
-            </span>
-          ))}
-          <b className="phenomenon-center" />
-        </div>
-        <div className="phenomenon-water" />
-        <div className="phenomenon-ripple phenomenon-ripple-one" />
-        <div className="phenomenon-ripple phenomenon-ripple-two" />
-        <span className="phenomenon-word phenomenon-word-splash">そっと</span>
-        <span className="phenomenon-word phenomenon-word-absorb">すーっ</span>
-        <span className="phenomenon-word phenomenon-word-open">じわ〜</span>
-        <span className="phenomenon-word phenomenon-word-full">ぱあっ</span>
-        <p className="phenomenon-conclusion">{conclusion}</p>
+  if (assetState === "error") {
+    return <section className="phenomenon-shell" ref={rootRef}>
+      {sharedHeading}
+      <div className="phenomenon-error">
+        <img src={frameSources[0]} alt="おりたたんだ紙の花の絵" />
+        <p><b>ショーを よみこめなかったよ</b><br />つうしんを たしかめて、もういちど おしてね。</p>
+        <button onClick={() => {
+          setAssetState("loading");
+          setLoadAttempt((attempt) => attempt + 1);
+        }}>もういちど よみこむ</button>
       </div>
-      <div className="phenomenon-phases" aria-label="ショーの段階" role="list">
-        <span className="phenomenon-phase" role="listitem"><b>1</b> おく</span>
-        <span className="phenomenon-phase" role="listitem"><b>2</b> すう</span>
-        <span className="phenomenon-phase" role="listitem"><b>3</b> ひらく</span>
+      <button className="back" onClick={onBack} aria-label="ほかの ふしぎへ もどる">← ほかの ふしぎ</button>
+    </section>;
+  }
+
+  if (reducedMotion) {
+    return <section className="phenomenon-shell phenomenon-reduced" ref={rootRef}>
+      {sharedHeading}
+      <div className="phenomenon-storyboard phenomenon-image-storyboard" aria-hidden="true">
+        {[0, 2, 4].map((frame, index) => <div key={frame}>
+          <b>{index + 1}. {index === 0 ? "おく" : index === 1 ? "みずを すう" : "ひらく"}</b>
+          <img src={frameSources[frame]} alt="" />
+          <small>{index === 0 ? "とじた はな" : index === 1 ? "みずが すすむ" : "ぜんぶ ひらく"}</small>
+        </div>)}
       </div>
-      {!complete && <button ref={pauseButtonRef} className="phenomenon-pause" onClick={togglePause} aria-label={paused ? "ショーの つづきを みる" : "ショーを いったん とめる"}>{paused ? "▶ つづきを みる" : "Ⅱ いったん とめる"}</button>}
-      {complete && <div className="phenomenon-finish-actions">
-        <button ref={tryButtonRef} className="primary" onClick={onTry} aria-label="やってみたい。おうちのひとへ わたす">やってみたい！ <span>→</span></button>
-        <button className="phenomenon-replay" onClick={() => startShow(true)} aria-label="10びょうショーを もういちど みる">↻ もういちど みる</button>
-        <button className="back" onClick={leaveShow} aria-label="ほかの ふしぎへ もどる">← ほかの ふしぎ</button>
-      </div>}
-      <p className="sr-only" aria-live="polite">{announcement}</p>
-    </section>
-  );
+      <p className="phenomenon-reduced-conclusion">{conclusion}</p>
+      <div className="phenomenon-finish-actions">
+        <button className="primary" onClick={onTry} aria-label="やってみたい。おうちのひとへ わたす">やってみたい！ <span>→</span></button>
+        <button className="back" onClick={onBack} aria-label="ほかの ふしぎへ もどる">← ほかの ふしぎ</button>
+      </div>
+    </section>;
+  }
+
+  return <section className="phenomenon-shell" ref={rootRef}>
+    {sharedHeading}
+    <div className="phenomenon-scene phenomenon-image-scene" aria-hidden="true">
+      {frameSources.map((source, index) => <img
+        className={`phenomenon-frame phenomenon-frame-${index + 1}`}
+        src={source}
+        alt=""
+        key={source}
+      />)}
+      <span className="phenomenon-caption phenomenon-caption-contact">おみずに ふれた！</span>
+      <span className="phenomenon-caption phenomenon-caption-absorb">すーっ… かみが みずを すう</span>
+      <span className="phenomenon-caption phenomenon-caption-loosen">じわ〜… おりめが ゆるむ</span>
+      <span className="phenomenon-caption phenomenon-caption-open">ぱあっ！ はなが ひらいた</span>
+      <p className="phenomenon-conclusion">{conclusion}</p>
+    </div>
+    <div className="phenomenon-phases" aria-label="ショーの段階" role="list">
+      <span className="phenomenon-phase" role="listitem"><b>1</b> おく</span>
+      <span className="phenomenon-phase" role="listitem"><b>2</b> すう</span>
+      <span className="phenomenon-phase" role="listitem"><b>3</b> ひらく</span>
+    </div>
+    {!complete && <button ref={pauseButtonRef} className="phenomenon-pause" onClick={togglePause} aria-label={paused ? "ショーの つづきを みる" : "ショーを いったん とめる"}>{paused ? "つづきを みる" : "いったん とめる"}</button>}
+    {complete && <div className="phenomenon-finish-actions">
+      <button ref={tryButtonRef} className="primary" onClick={onTry} aria-label="やってみたい。おうちのひとへ わたす">やってみたい！ <span>→</span></button>
+      <button className="phenomenon-replay" onClick={() => startShow(true)} aria-label="10びょうショーを もういちど みる">もういちど みる</button>
+      <button className="back" onClick={leaveShow} aria-label="ほかの ふしぎへ もどる">← ほかの ふしぎ</button>
+    </div>}
+    <p className="sr-only" aria-live="polite">{announcement}</p>
+  </section>;
 }
