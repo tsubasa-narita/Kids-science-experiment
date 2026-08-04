@@ -20,6 +20,11 @@ test("server-renders the fushigi no tane home", async () => {
   assert.match(html, /どの ふしぎを/);
   assert.match(html, /10びょうで/);
   assert.match(html, /ひらく 紙の花/);
+  assert.match(html, /あるく いろみず/);
+  assert.match(html, /LEDで 影くらべ/);
+  assert.match(html, /ショーを みられる/);
+  assert.match(html, /おうちで やる レシピは じゅんび中/);
+  assert.doesNotMatch(html, /よこくをみる/);
   assert.doesNotMatch(html, /よそうする|よそう タイム/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|Starter Project|react-loading-skeleton/i);
 });
