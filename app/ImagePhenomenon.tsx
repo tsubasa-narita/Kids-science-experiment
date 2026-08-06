@@ -24,14 +24,13 @@ export type PhenomenonConfig = {
   reducedLabels: readonly [string, string, string];
   phaseLabels: readonly [string, string, string];
   fallbackAlt: string;
-  showOnly?: boolean;
   safetyNotice?: string;
 };
 
 type ImagePhenomenonProps = {
   config: PhenomenonConfig;
   onBack: () => void;
-  onTry?: () => void;
+  onTry: () => void;
 };
 
 type AssetState = "loading" | "ready" | "error";
@@ -85,7 +84,6 @@ export const phenomenonConfigs: Record<ExperimentId, PhenomenonConfig> = {
     reducedLabels: ["かみで つなぐ", "いろみずが すすむ", "みどりに まざる"],
     phaseLabels: ["つなぐ", "すすむ", "まざる"],
     fallbackAlt: "黄色と青の色水を紙でつないだ絵",
-    showOnly: true,
   },
   shadow: {
     id: "shadow",
@@ -110,7 +108,6 @@ export const phenomenonConfigs: Record<ExperimentId, PhenomenonConfig> = {
     reducedLabels: ["ライトが とおい", "すこし ちかい", "いちばん ちかい"],
     phaseLabels: ["とおい", "ちかづく", "おおきい"],
     fallbackAlt: "ライトと物と壁に映る影の絵",
-    showOnly: true,
     safetyNotice: "ライトを めに むけたり、のぞきこんだり しないでね。",
   },
 };
@@ -137,10 +134,7 @@ export function ImagePhenomenon({ config, onBack, onTry }: ImagePhenomenonProps)
   const [paused, setPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [announcement, setAnnouncement] = useState("");
-  const canTry = !config.showOnly && Boolean(onTry);
-  const completionAnnouncement = canTry
-    ? "ショーが おわりました。やってみたい、もういちど みる、ほかの ふしぎを えらべます"
-    : "ショーが おわりました。もういちど みる、ほかの ふしぎを えらべます";
+  const completionAnnouncement = "ショーが おわりました。やってみたい、もういちど みる、ほかの ふしぎを えらべます";
 
   const cancelAnimations = useCallback(() => {
     runRef.current += 1;
@@ -293,11 +287,6 @@ export function ImagePhenomenon({ config, onBack, onTry }: ImagePhenomenonProps)
     {config.safetyNotice && <p className="phenomenon-safety-note">！ {config.safetyNotice}</p>}
     <p className="sr-only">{config.srDescription}</p>
   </>;
-  const showOnlyNotice = config.showOnly && <aside className="phenomenon-recipe-notice">
-    <b>おうちで やる レシピは じゅんび中</b>
-    <p>安全な材料と手順を確認中です。絵だけを見て再現しないでください。</p>
-  </aside>;
-
   if (assetState === "loading") return <section className={`phenomenon-shell phenomenon-${config.id}`} ref={rootRef}>
     {heading}<div className="phenomenon-loading" role="status"><span aria-hidden="true" />ショーを じゅんびしているよ</div>
     <button className="back" onClick={onBack} aria-label="ほかの ふしぎへ もどる">← ほかの ふしぎ</button>
@@ -314,9 +303,9 @@ export function ImagePhenomenon({ config, onBack, onTry }: ImagePhenomenonProps)
     {heading}<div className="phenomenon-storyboard phenomenon-image-storyboard" aria-hidden="true">
       {[0, 2, 4].map((frame, index) => <div key={frame}><b>{index + 1}. {config.phaseLabels[index]}</b>
         <img src={config.frames[frame]} alt="" /><small>{config.reducedLabels[index]}</small></div>)}
-    </div><p className="phenomenon-reduced-conclusion">{config.conclusion}</p>{showOnlyNotice}
+    </div><p className="phenomenon-reduced-conclusion">{config.conclusion}</p>
     <div className="phenomenon-finish-actions">
-      {canTry && <button className="primary" onClick={onTry} aria-label="やってみたい。おうちのひとへ わたす">やってみたい！ <span>→</span></button>}
+      <button className="primary" onClick={onTry} aria-label="やってみたい。おうちのひとへ わたす">やってみたい！ <span>→</span></button>
       <button className="back" onClick={onBack} aria-label="ほかの ふしぎへ もどる">← ほかの ふしぎ</button>
     </div>
   </section>;
@@ -331,11 +320,11 @@ export function ImagePhenomenon({ config, onBack, onTry }: ImagePhenomenonProps)
       {config.phaseLabels.map((label, index) => <span className="phenomenon-phase" role="listitem" key={label}><b>{index + 1}</b> {label}</span>)}
     </div>
     {!complete && <button ref={pauseButtonRef} className="phenomenon-pause" onClick={togglePause} aria-label={paused ? "ショーの つづきを みる" : "ショーを いったん とめる"}>{paused ? "つづきを みる" : "いったん とめる"}</button>}
-    {complete && <>{showOnlyNotice}<div className="phenomenon-finish-actions">
-      {canTry && <button ref={firstFinishButtonRef} className="primary" onClick={onTry} aria-label="やってみたい。おうちのひとへ わたす">やってみたい！ <span>→</span></button>}
-      <button ref={canTry ? undefined : firstFinishButtonRef} className="phenomenon-replay" onClick={() => startShow(true)} aria-label="10びょうショーを もういちど みる">もういちど みる</button>
+    {complete && <div className="phenomenon-finish-actions">
+      <button ref={firstFinishButtonRef} className="primary" onClick={onTry} aria-label="やってみたい。おうちのひとへ わたす">やってみたい！ <span>→</span></button>
+      <button className="phenomenon-replay" onClick={() => startShow(true)} aria-label="10びょうショーを もういちど みる">もういちど みる</button>
       <button className="back" onClick={leaveShow} aria-label="ほかの ふしぎへ もどる">← ほかの ふしぎ</button>
-    </div></>}
+    </div>}
     <p className="sr-only" aria-live="polite">{announcement}</p>
   </section>;
 }
